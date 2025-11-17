@@ -80,6 +80,19 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    .title {
+      text-align: center;
+      font-size: 1.7rem;
+      margin-bottom: 12px;
+    }
+
+    .sub {
+      text-align: center;
+      color: #7a4c65;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
     /* Envelope */
     .envelope {
       width: 200px;
@@ -122,19 +135,6 @@
     }
     .envelope-heart::before { top: -11px; left: 0; }
     .envelope-heart::after  { left: -11px; top: 0; }
-
-    .title {
-      text-align: center;
-      font-size: 1.7rem;
-      margin-bottom: 12px;
-    }
-
-    .sub {
-      text-align: center;
-      color: #7a4c65;
-      margin-bottom: 20px;
-      font-size: 0.95rem;
-    }
 
     .password-box {
       margin-top: 16px;
@@ -200,10 +200,71 @@
     /* Final screen */
     .final-message {
       text-align: center;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       line-height: 1.6;
       color: #572f45;
-      padding: 20px;
+      padding: 10px 4px 16px;
+    }
+
+    .love-button {
+      margin: 12px auto 10px;
+    }
+
+    .love-wall {
+      margin-top: 10px;
+      min-height: 120px;
+      padding: 10px;
+      border-radius: 16px;
+      background: #ffeaf4;
+      border: 1px solid #ffc6e1;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .love-chip {
+      background: #ffbfdc;
+      padding: 4px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      animation: popIn 0.25s ease;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    /* Heart burst on final screen */
+    .burst-heart {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #ff7aa2;
+      transform: rotate(45deg);
+      pointer-events: none;
+      opacity: 0;
+      animation: burst 1.8s ease-out forwards;
+    }
+    .burst-heart::before,
+    .burst-heart::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #ff7aa2;
+      border-radius: 50%;
+    }
+    .burst-heart::before { top: -8px; left: 0; }
+    .burst-heart::after  { left: -8px; top: 0; }
+
+    @keyframes burst {
+      0%   { transform: translateY(0) scale(0.8) rotate(45deg); opacity: 0; }
+      20%  { opacity: 1; }
+      100% { transform: translateY(-140px) scale(1.2) rotate(45deg); opacity: 0; }
     }
   </style>
 </head>
@@ -219,6 +280,7 @@
       <div class="heart h4"></div>
     </div>
 
+    <!-- SCREEN 1: ENVELOPE + PASSWORD -->
     <div id="screen1" class="screen active">
       <div class="title">hi my honey 💗</div>
       <div class="sub">I made something cute for you</div>
@@ -239,7 +301,7 @@
       </div>
     </div>
 
-    <!-- LETTER SCREEN -->
+    <!-- SCREEN 2: LETTER -->
     <div id="screen2" class="screen">
       <div class="title">my little letter for you 💌</div>
 
@@ -270,41 +332,114 @@
       <button class="btn continue-btn" onclick="goToFinal()">continue ➜</button>
     </div>
 
-    <!-- FINAL MESSAGE SCREEN -->
+    <!-- SCREEN 3: HEART BURST + I LOVE YOU MORE WALL -->
     <div id="screen3" class="screen">
       <div class="title">one last thing, honey 💗</div>
 
       <div class="final-message">
         I love you so much.  
         <br><br>
-        thank you for being such a bright, soft, beautiful part of my life.  
-        <br><br>
-        you mean the world to me. ♡
+        and just so you never forget it...
+      </div>
+
+      <button class="btn love-button" id="love-button" onclick="addLove()">
+        I love you
+      </button>
+
+      <div class="love-wall" id="love-wall">
+        <!-- “I love you more” chips will fill this up -->
       </div>
     </div>
 
   </div>
 
   <script>
-    function checkPassword() {
-      const pw = document.getElementById("password").value;
-      const error = document.getElementById("error");
-
-      if (pw === "0326") {
-        showScreen(2);
-      } else {
-        error.textContent = "try again, honey ♡";
-      }
-    }
+    const PASSWORD = "0326";
+    const screens = document.querySelectorAll(".screen");
+    const errorBox = document.getElementById("error");
+    const passwordInput = document.getElementById("password");
+    const loveWall = document.getElementById("love-wall");
+    const loveButton = document.getElementById("love-button");
+    let loveClicks = 0;
+    let heartsStarted = false;
 
     function showScreen(num) {
-      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      screens.forEach(s => s.classList.remove("active"));
       document.getElementById("screen" + num).classList.add("active");
+    }
+
+    function checkPassword() {
+      const pw = passwordInput.value.trim();
+      if (pw === PASSWORD) {
+        errorBox.textContent = "";
+        showScreen(2);
+      } else {
+        errorBox.textContent = "try again, honey ♡";
+      }
     }
 
     function goToFinal() {
       showScreen(3);
+      if (!heartsStarted) {
+        heartsStarted = true;
+        startHeartBurst();
+      }
     }
+
+    // Make hearts "jump out" on final screen
+    function startHeartBurst() {
+      const container = document.querySelector(".container");
+      // create hearts every 350ms for a little while
+      let bursts = 0;
+      const interval = setInterval(() => {
+        createBurstHeart(container);
+        bursts++;
+        if (bursts > 15) clearInterval(interval);
+      }, 350);
+    }
+
+    function createBurstHeart(container) {
+      const heart = document.createElement("div");
+      heart.className = "burst-heart";
+      const rect = container.getBoundingClientRect();
+      const x = Math.random() * (rect.width - 40) + 20;
+      const y = rect.height - 30;
+
+      heart.style.left = x + "px";
+      heart.style.top = y + "px";
+
+      container.appendChild(heart);
+
+      heart.addEventListener("animationend", () => {
+        heart.remove();
+      });
+    }
+
+    // “I love you” button that fills the page with “I love you more”
+    function addLove() {
+      loveClicks++;
+
+      if (loveClicks === 1) {
+        loveButton.textContent = "I love you more";
+      }
+
+      const chip = document.createElement("span");
+      chip.className = "love-chip";
+      chip.textContent = "I love you more";
+      loveWall.appendChild(chip);
+
+      // optional: little extra hearts after a bunch of clicks
+      if (loveClicks % 5 === 0) {
+        startHeartBurst();
+      }
+    }
+
+    // Allow Enter key to submit password
+    passwordInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") {
+        checkPassword();
+      }
+    });
   </script>
 </body>
 </html>
